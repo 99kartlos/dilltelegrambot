@@ -175,7 +175,7 @@ async def auto_check_validators(context: ContextTypes.DEFAULT_TYPE):
 # Botu Ã§alÄ±ÅŸtÄ±rma
 def main():
     load_data()  # Verileri baÅŸlatÄ±rken yÃ¼kle
-    TELEGRAM_TOKEN = "7864906734:AAFzstqxk8I2OCNu63CUOc5_QblEquPesqU"
+    TELEGRAM_TOKEN = "TelegramBotToken"
 
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
