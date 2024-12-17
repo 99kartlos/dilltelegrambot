@@ -10,11 +10,11 @@ DATA_FILE = '/root/botpy/user_data.json'
 
 API_URL = "https://alps.dill.xyz/api/trpc/stats.getAllValidators"
 
-# KullanÄ±cÄ± verileri
+# User Data
 user_pubkeys = {}
 user_balance_history = {}
 
-# Verileri yÃ¼kleme
+# Data Upload
 def load_data():
     global user_pubkeys, user_balance_history
     try:
@@ -28,7 +28,7 @@ def load_data():
     except json.JSONDecodeError:
         print("Data file is corrupted. Starting with empty data.")
 
-# Verileri kaydetme
+# Data Save
 def save_data():
     with open(DATA_FILE, "w") as file:
         data = {
@@ -38,11 +38,11 @@ def save_data():
         json.dump(data, file)
         print("Data successfully saved.")
 
-# Balance formatlama
+# Balance 
 def format_balance(balance):
     return f"{balance / 1e9:.6f}"
 
-# API'den validator bilgilerini Ã§ekme
+# API Validators Info
 async def get_validator_info(pubkey):
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
@@ -61,13 +61,13 @@ async def get_validator_info(pubkey):
         print(f"Error fetching validator info: {e}")
         return None
 
-# /start komutu
+# /start 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Welcome! Use /add_pubkey <pubkey> to add, /check to check status, and /delete_pubkey <pubkey> to delete a pubkey."
     )
 
-# /add_pubkey komutu
+# /add_pubkey 
 async def add_pubkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
     if len(context.args) != 1:
@@ -86,7 +86,7 @@ async def add_pubkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await update.message.reply_text(f"âœ… Pubkey added: {pubkey}")
 
-# /check komutu
+# /check 
 async def check_pubkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
 
@@ -101,16 +101,16 @@ async def check_pubkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
             previous_balance = user_balance_history.get(user_id, {}).get(pubkey, None)
             current_balance = int(info['raw_balance'])
 
-            # Balance deÄŸiÅŸimi hesaplama
+            # Balance change calculate
             if previous_balance is not None:
                 change = current_balance - previous_balance
-                icon = "ğŸŸ©" if change > 0 else "ğŸŸ¥" if change < 0 else "â¬œ"
+                icon = "🟩" if change > 0 else "🟥" if change < 0 else "⬜"
                 sign = "+" if change > 0 else "-" if change < 0 else ""
                 change_str = f"{icon} {sign}{format_balance(abs(change))}"
             else:
-                change_str = "(N/A)"  # Ä°lk kontrol, deÄŸiÅŸim yok
+                change_str = "(N/A)"  
 
-            # Balance geÃ§miÅŸini gÃ¼ncelle
+            # Balance update
             user_balance_history.setdefault(user_id, {})[pubkey] = current_balance
             results.append(
                 f"ğŸ” Pubkey: {info['pubkey']}\nBalance: {info['balance']} ({change_str})\nStatus: {info['status']}"
@@ -121,7 +121,7 @@ async def check_pubkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await update.message.reply_text("\n\n".join(results))
 
-# /delete_pubkey komutu
+# /delete_pubkey 
 async def delete_pubkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
     if len(context.args) != 1:
@@ -137,7 +137,7 @@ async def delete_pubkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await update.message.reply_text(f"âœ… Pubkey deleted: {pubkey}")
 
-# Validator bilgilerini otomatik kontrol etme
+# Validator info auto check
 async def auto_check_validators(context: ContextTypes.DEFAULT_TYPE):
     for user_id, pubkeys in user_pubkeys.items():
         results = []
@@ -150,13 +150,13 @@ async def auto_check_validators(context: ContextTypes.DEFAULT_TYPE):
                 # Balance deÄŸiÅŸimi hesaplama
                 if previous_balance is not None:
                     change = current_balance - previous_balance
-                    icon = "ğŸŸ©" if change > 0 else "ğŸŸ¥" if change < 0 else "â¬œ"
+                    icon = "🟩" if change > 0 else "🟥" if change < 0 else "⬜"
                     sign = "+" if change > 0 else "-" if change < 0 else ""
                     change_str = f"{icon} {sign}{format_balance(abs(change))}"
                 else:
-                    change_str = "(N/A)"  # Ä°lk kontrol, deÄŸiÅŸim yok
+                    change_str = "(N/A)"  # First Check
 
-                # Balance geÃ§miÅŸini gÃ¼ncelle
+                # Balance change check
                 user_balance_history.setdefault(user_id, {})[pubkey] = current_balance
 
                 results.append(
@@ -172,9 +172,9 @@ async def auto_check_validators(context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 print(f"Error sending message to {user_id}: {e}")
 
-# Botu Ã§alÄ±ÅŸtÄ±rma
+# Botu Start
 def main():
-    load_data()  # Verileri baÅŸlatÄ±rken yÃ¼kle
+    load_data()  
     TELEGRAM_TOKEN = "TelegramBotToken"
 
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -184,7 +184,7 @@ def main():
     application.add_handler(CommandHandler("delete_pubkey", delete_pubkey))
 
     job_queue = application.job_queue
-    job_queue.run_repeating(auto_check_validators, interval=900, first=0)  # 900 saniye = 15 dakika
+    job_queue.run_repeating(auto_check_validators, interval=900, first=0)  # 900 seconds = 15 minute
 
     application.run_polling()
 
